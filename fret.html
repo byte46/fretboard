@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Интерактивный гриф гитары</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        #fretboard {
+            width: 100%; /* Растягиваем на всю ширину */
+            height: auto; /* Автоматическая высота */
+            max-width: 800px; /* Ограничение для больших экранов */
+            margin: 0 auto; /* Центрирование */
+        }
+        .controls {
+            padding: 10px;
+            box-sizing: border-box;
+            font-size: 16pt;
+            max-width: 800px;
+            margin: 0 auto;
+            margin: 20px; font-family: Arial;
+        }
+
+        .control-label {
+            display: inline-block;
+            width: 120px;
+            vertical-align: middle; /* Выравнивание с комбобоксами */
+        }
+
+        .controls select {
+            font-size: 16px; /* Размер комбобоксов */
+            padding: 5px;
+        }
+
+        .fret-line { stroke: #666; }
+        .string-line { stroke: #CCC; stroke-width: 2; }
+        .open-fret { fill: #FFE4B5; }
+        .fret-white { fill: #FFFFFF; }
+        .note-tonic { fill: #32CD32; }
+        .note-scale { fill: #1E7070; }
+        .note-other { fill: #C0C0C0; }
+
+        .note-circle { cursor: pointer; }
+        .control-group { margin: 10px 0; }
+        .fret-markers circle { fill: #666; }
+        .string_name {
+            text-anchor:end;
+            fill:#666;
+            font-family:'Arial';
+            font-size:10px;
+            font-weight: bold;
+            pointer-events:none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #scaleNotesList {
+            color: #333;
+            font-size: 16pt;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        #copyright {
+            color: #E0E0E0;
+        }
+    </style>
+</head>
+<body>
+    <svg id="fretboard" xmlns="http://www.w3.org/2000/svg" width="600" height="220" viewBox="0 0 400 160"></svg>
+    <!-- Маркеры будут добавлены динамически -->
+    <div id="scaleNotesList"></div>
+    <div class="controls">
+        <div class="control-group">
+            <span class="control-label">Тоника:</span>
+            <select id="tonicSelect"></select>
+        </div>
+        <div class="control-group">
+            <span class="control-label">Тип:</span>
+            <select id="scaleTypeSelect">
+                <option value="major">Мажор (ионийский)</option>
+                <option value="minor">Минор (эолийский)</option>
+                <option value="dorian">Дорийский</option>
+                <option value="phrygian">Фригийский</option>
+                <option value="lydian">Лидийский</option>
+                <option value="mixolydian">Миксолидийский</option>
+                <option value="locrian">Локрийский</option>
+                <option value="harm_minor">Гармонический минор</option>
+                <option value="penta_maj">Пентатоника мажорная</option>
+                <option value="penta_min">Пентатоника минорная</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        const noteOrder = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
+        const tonicOptions = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+        const svg = document.getElementById('fretboard');
+
+
+        const strings = [
+            { number: 1, openNote: 'E', openIndex: 7 },
+            { number: 2, openNote: 'A', openIndex: 0 },
+            { number: 3, openNote: 'D', openIndex: 5 },
+            { number: 4, openNote: 'G', openIndex: 10 },
+            { number: 5, openNote: 'B', openIndex: 2 },
+            { number: 6, openNote: 'E', openIndex: 7 }
+        ];
+
+        const notes = [];
+        strings.forEach(string => {
+            for (let fret = 0; fret <= 12; fret++) {
+                const noteIndex = (string.openIndex + fret) % 12;
+                notes.push({
+                    note: noteOrder[noteIndex],
+                    x: fret * 30 + 15,
+                    y: 140 - (string.number * 20),
+                    fret: fret,
+                    string: string.number
+                });
+            }
+        });
+
+        let currentTonic = 'C';
+        let scaleType = 'major';
+
+        const scaleFormulas = { // Первый элемент — 2 ступень
+            major:      [2, 2, 1, 2, 2, 2, 1],      // Ионийский
+            minor:      [2, 1, 2, 2, 1, 2, 2],      // Эолийский
+            harm_minor: [2, 1, 2, 2, 1, 3, 1],
+            penta_maj:  [2, 2, 3, 2, 3],
+            penta_min:  [3, 2, 2, 3, 2],
+            dorian:     [2, 1, 2, 2, 2, 1, 2],      // Дорийский
+            phrygian:   [1, 2, 2, 2, 1, 2, 2],      // Фригийский
+            lydian:     [2, 2, 2, 1, 2, 2, 1],      // Лидийский
+            mixolydian: [2, 2, 1, 2, 2, 1, 2],      // Миксолидийский
+            locrian:    [1, 2, 2, 1, 2, 2, 2]       // Локрийский
+        };
+
+
+        function initUI() {
+            // Заполнение списка тоник
+            const tonicSelect = document.getElementById('tonicSelect');
+            tonicOptions.forEach(note => {
+                const option = new Option(note, note);
+                tonicSelect.add(option);
+            });
+
+            // Обработчики событий
+            tonicSelect.addEventListener('change', () => {
+                currentTonic = tonicSelect.value;
+                drawFretboard();
+            });
+
+            document.getElementById('scaleTypeSelect').addEventListener('change', e => {
+                scaleType = e.target.value;
+                drawFretboard();
+            });
+
+            svg.addEventListener('click', e => {
+                if (e.target.classList.contains('note-circle')) {
+                    const note = notes.find(n =>
+                        n.x === +e.target.getAttribute('cx') &&
+                        n.y === +e.target.getAttribute('cy')
+                    );
+                    if (note) {
+                        currentTonic = note.note;
+                        drawFretboard();
+                    }
+                }
+            });
+        }
+
+        function getScaleNotes(tonic, type) {
+            const startIndex = noteOrder.indexOf(tonic);
+            const formula = scaleFormulas[type];
+            const scale = [tonic];
+            let current = startIndex;
+            for (const step of formula) {
+                current = (current + step) % 12;
+                scale.push(noteOrder[current]);
+            }
+            return scale;
+        }
+
+        function getScaleTypeNames() {
+            const select = document.getElementById('scaleTypeSelect');
+            return Array.from(select.options).reduce((acc, option) => {
+                acc[option.value] = option.textContent.toLowerCase();
+                return acc;
+            }, {});
+        }
+
+        function drawFretboard() {
+            tonicSelect.value = currentTonic;
+            const svg = document.getElementById('fretboard');
+            svg.innerHTML = '';
+
+            svg.appendChild(createRect(0, 0, 30, 140, 'open-fret'));
+            svg.appendChild(createRect(30, 0, 360, 140, 'fret-white'));
+
+            for (let i = 0; i <= 12; i++) {
+                svg.appendChild(createLine(i * 30, 0, i * 30, 140, 'fret-line'));
+            }
+            // Горизонтальные линии струн
+            for (let i = 1; i <= 6; i++) {
+                const y = 140 - (i * 20);
+                svg.appendChild(createLine(0, y, 390, y, 'string-line'));
+            }
+
+            // Добавление обозначений струн слева
+            strings.forEach(string => {
+                const text = createText(-5, 140 - (string.number * 20) + 4, string.openNote);
+                text.classList.add('string_name');
+                svg.appendChild(text);
+            });
+
+            // Ноты
+            const scaleNotes = getScaleNotes(currentTonic, scaleType);
+            notes.forEach(n => {
+                const isTonic = n.note === currentTonic;
+                const isScaleNote = scaleNotes.includes(n.note);
+                const degree = scaleNotes.indexOf(n.note) + 1;
+
+                const circle = createCircle(n.x, n.y, 9, [
+                    'note-circle',
+                    isTonic ? 'note-tonic' :
+                    isScaleNote ? 'note-scale' : 'note-other'
+                ]);
+                svg.appendChild(circle);
+
+                const text = createText(n.x, n.y + 4, romanNumerals[degree] || '');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('x', n.x);
+                text.setAttribute('y', n.y + 4);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-family', 'Arial');
+                text.setAttribute('font-size', '10');
+                text.setAttribute('pointer-events', 'none');
+                svg.appendChild(text);
+            });
+
+            // Маркеры ладов
+            const markers = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            markers.setAttribute('class', 'fret-markers');
+            [3,5,7,9].forEach(fret => markers.appendChild(createCircle(fret*30+15, 150, 2)));
+            markers.appendChild(createCircle(12*30+15, 147, 2));
+            markers.appendChild(createCircle(12*30+15, 153, 2));
+            svg.appendChild(markers);
+
+            scaleNotesList.innerHTML = `
+                <strong>Ноты последовательности:</strong>
+            ${getScaleNotes(currentTonic, scaleType).join(', ')}
+            `;
+        }
+        // Вспомогательные функции
+        function createRect(x, y, w, h, cls) {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', x);
+            rect.setAttribute('y', y);
+            rect.setAttribute('width', w);
+            rect.setAttribute('height', h);
+            if (cls) rect.classList.add(cls);
+            return rect;
+        }
+
+        function createLine(x1, y1, x2, y2, cls) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            line.setAttribute('d', `M${x1} ${y1}L${x2} ${y2}`);
+            line.classList.add(cls);
+            return line;
+        }
+
+        function createCircle(cx, cy, r, classes = []) {
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', cx);
+            circle.setAttribute('cy', cy);
+            circle.setAttribute('r', r);
+            if (Array.isArray(classes)) classes.forEach(c => circle.classList.add(c));
+            return circle;
+        }
+
+        function createText(x, y, text) {
+            const elem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            elem.setAttribute('x', x);
+            elem.setAttribute('y', y);
+            elem.classList.add('svg-text');
+            elem.textContent = text;
+            return elem;
+        }
+        initUI();
+        drawFretboard();
+    </script>
+    <div id="copyright">&copy; Serge AKA Byte (https://byteware.ru, https://t.me/byteware), DeepSeek, 2025</div>
+    <div id="copyright">Лицензия: Creative Commons Attribution NonCommercial (CC-BY-NC)</div>
+</body>
+</html>
