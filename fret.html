@@ -86,18 +86,17 @@
 
         #piano {
             display: block;
+            margin-top: 20px;
         }
 
-        /* На мобильных устройствах фортепиано под грифом */
+        /* На мобильных устройствах */
         @media (max-width: 768px) {
             .container {
-                flex-direction: column;
                 align-items: center;
             }
 
             .fretboard-container {
                 margin-right: 0;
-                margin-bottom: 20px;
             }
 
             #scaleNotesList {
@@ -132,8 +131,8 @@
     <div class="container">
         <div class="fretboard-container">
             <svg id="fretboard" xmlns="http://www.w3.org/2000/svg" width="600" height="220" viewBox="0 0 400 160"></svg>
+            <svg id="piano" xmlns="http://www.w3.org/2000/svg" width="600" height="220"></svg>
         </div>
-        <svg id="piano" xmlns="http://www.w3.org/2000/svg" width="600" height="220"></svg>
     </div>
     <div id="scaleNotesList"></div>
     <div class="controls">
