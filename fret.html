@@ -139,6 +139,18 @@
             let currentTonic = 'C';
             let scaleType = 'major';
 
+            function saveState() {
+                localStorage.setItem('guitarFretTonic', currentTonic);
+                localStorage.setItem('guitarFretScaleType', scaleType);
+            }
+
+            function loadState() {
+                const savedTonic = localStorage.getItem('guitarFretTonic');
+                const savedScaleType = localStorage.getItem('guitarFretScaleType');
+                if (savedTonic) currentTonic = savedTonic;
+                if (savedScaleType) scaleType = savedScaleType;
+            }
+
             const scaleFormulas = { // Первый элемент — 2 ступень
                 major:      [2, 2, 1, 2, 2, 2, 1],      // Ионийский
                 minor:      [2, 1, 2, 2, 1, 2, 2],      // Эолийский
@@ -154,19 +166,28 @@
 
 
             function initUI() {
+                // Загрузка сохранённого состояния
+                loadState();
+
                 tonicOptions.forEach(note => {
                     const option = new Option(note, note);
                     tonicSelect.add(option);
                 });
 
+                // Установка сохранённых значений в select
+                tonicSelect.value = currentTonic;
+                document.getElementById('scaleTypeSelect').value = scaleType;
+
                 // Обработчики событий
                 tonicSelect.addEventListener('change', () => {
                     currentTonic = tonicSelect.value;
+                    saveState();
                     drawFretboard();
                 });
 
                 document.getElementById('scaleTypeSelect').addEventListener('change', e => {
                     scaleType = e.target.value;
+                    saveState();
                     drawFretboard();
                 });
 
@@ -178,6 +199,7 @@
                         );
                         if (note) {
                             currentTonic = note.note;
+                            saveState();
                             drawFretboard();
                         }
                     }
