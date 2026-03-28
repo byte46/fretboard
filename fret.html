@@ -67,7 +67,7 @@
             width: fit-content;
         }
 
-        #copyright {
+        .copyright {
             color: #E0E0E0;
         }
     </style>
@@ -99,6 +99,13 @@
     </div>
 
     <script>
+        const FRET_WIDTH = 30;
+        const FRETBOARD_HEIGHT = 140;
+        const STRING_SPACING = 20;
+        const NECK_START = 15;
+        const NUM_FRETS = 12;
+        const NUM_STRINGS = 6;
+
         const noteOrder = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
         const tonicOptions = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
         const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
@@ -190,12 +197,12 @@
             return scale;
         }
 
-        function getScaleTypeNames() {
-            const select = document.getElementById('scaleTypeSelect');
-            return Array.from(select.options).reduce((acc, option) => {
-                acc[option.value] = option.textContent.toLowerCase();
-                return acc;
-            }, {});
+        function createScaleLookup(scaleNotes) {
+            const lookup = {};
+            scaleNotes.forEach((note, index) => {
+                lookup[note] = index + 1;
+            });
+            return lookup;
         }
 
         function drawFretboard() {
@@ -224,10 +231,12 @@
 
             // Ноты
             const scaleNotes = getScaleNotes(currentTonic, scaleType);
+            const scaleLookup = createScaleLookup(scaleNotes);
+
             notes.forEach(n => {
+                const degree = scaleLookup[n.note];
                 const isTonic = n.note === currentTonic;
-                const isScaleNote = scaleNotes.includes(n.note);
-                const degree = scaleNotes.indexOf(n.note) + 1;
+                const isScaleNote = !!degree;
 
                 const circle = createCircle(n.x, n.y, 9, [
                     'note-circle',
@@ -238,10 +247,7 @@
 
                 const text = createText(n.x, n.y + 4, romanNumerals[degree] || '');
                 text.setAttribute('fill', 'white');
-                text.setAttribute('x', n.x);
-                text.setAttribute('y', n.y + 4);
                 text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('fill', 'white');
                 text.setAttribute('font-family', 'Arial');
                 text.setAttribute('font-size', '10');
                 text.setAttribute('pointer-events', 'none');
@@ -258,7 +264,7 @@
 
             scaleNotesList.innerHTML = `
                 <strong>Ноты последовательности:</strong>
-            ${getScaleNotes(currentTonic, scaleType).join(', ')}
+            ${scaleNotes.join(', ')}
             `;
         }
         // Вспомогательные функции
@@ -299,7 +305,7 @@
         initUI();
         drawFretboard();
     </script>
-    <div id="copyright">&copy; Serge AKA Byte (https://byteware.ru, https://t.me/byteware), DeepSeek, 2025</div>
-    <div id="copyright">Лицензия: Creative Commons Attribution NonCommercial (CC-BY-NC)</div>
+    <div class="copyright">&copy; Serge AKA Byte (https://byteware.ru, https://t.me/byteware), 2025</div>
+    <div class="copyright">Лицензия: Creative Commons Attribution NonCommercial (CC-BY-NC)</div>
 </body>
 </html>
