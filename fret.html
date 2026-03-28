@@ -11,10 +11,10 @@
         }
 
         #fretboard {
-            width: 100%; /* Растягиваем на всю ширину */
-            height: auto; /* Автоматическая высота */
-            max-width: 800px; /* Ограничение для больших экранов */
-            margin: 0 auto; /* Центрирование */
+            width: 100%;
+            height: auto;
+            max-width: 800px;
+            margin: 0 auto;
         }
         .controls {
             padding: 10px;
@@ -22,17 +22,18 @@
             font-size: 16pt;
             max-width: 800px;
             margin: 0 auto;
-            margin: 20px; font-family: Arial;
+            margin: 20px;
+            font-family: Arial;
         }
 
         .control-label {
             display: inline-block;
             width: 120px;
-            vertical-align: middle; /* Выравнивание с комбобоксами */
+            vertical-align: middle;
         }
 
         .controls select {
-            font-size: 16px; /* Размер комбобоксов */
+            font-size: 16px;
             padding: 5px;
         }
 
@@ -48,12 +49,12 @@
         .control-group { margin: 10px 0; }
         .fret-markers circle { fill: #666; }
         .string_name {
-            text-anchor:end;
-            fill:#666;
-            font-family:'Arial';
-            font-size:10px;
+            text-anchor: end;
+            fill: #666;
+            font-family: 'Arial';
+            font-size: 10px;
             font-weight: bold;
-            pointer-events:none;
+            pointer-events: none;
             user-select: none;
             -webkit-user-select: none;
         }
@@ -74,7 +75,6 @@
 </head>
 <body>
     <svg id="fretboard" xmlns="http://www.w3.org/2000/svg" width="600" height="220" viewBox="0 0 400 160"></svg>
-    <!-- Маркеры будут добавлены динамически -->
     <div id="scaleNotesList"></div>
     <div class="controls">
         <div class="control-group">
@@ -153,8 +153,6 @@
 
 
         function initUI() {
-            // Заполнение списка тоник
-            const tonicSelect = document.getElementById('tonicSelect');
             tonicOptions.forEach(note => {
                 const option = new Option(note, note);
                 tonicSelect.add(option);
@@ -210,21 +208,21 @@
             const svg = document.getElementById('fretboard');
             svg.innerHTML = '';
 
-            svg.appendChild(createRect(0, 0, 30, 140, 'open-fret'));
-            svg.appendChild(createRect(30, 0, 360, 140, 'fret-white'));
+            svg.appendChild(createRect(0, 0, NECK_START, FRETBOARD_HEIGHT, 'open-fret'));
+            svg.appendChild(createRect(NECK_START, 0, NUM_FRETS * FRET_WIDTH, FRETBOARD_HEIGHT, 'fret-white'));
 
-            for (let i = 0; i <= 12; i++) {
-                svg.appendChild(createLine(i * 30, 0, i * 30, 140, 'fret-line'));
+            for (let i = 0; i <= NUM_FRETS; i++) {
+                svg.appendChild(createLine(i * FRET_WIDTH, 0, i * FRET_WIDTH, FRETBOARD_HEIGHT, 'fret-line'));
             }
             // Горизонтальные линии струн
-            for (let i = 1; i <= 6; i++) {
-                const y = 140 - (i * 20);
+            for (let i = 1; i <= NUM_STRINGS; i++) {
+                const y = FRETBOARD_HEIGHT - (i * STRING_SPACING);
                 svg.appendChild(createLine(0, y, 390, y, 'string-line'));
             }
 
             // Добавление обозначений струн слева
             strings.forEach(string => {
-                const text = createText(-5, 140 - (string.number * 20) + 4, string.openNote);
+                const text = createText(-5, FRETBOARD_HEIGHT - (string.number * STRING_SPACING) + 4, string.openNote);
                 text.classList.add('string_name');
                 svg.appendChild(text);
             });
@@ -257,9 +255,9 @@
             // Маркеры ладов
             const markers = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             markers.setAttribute('class', 'fret-markers');
-            [3,5,7,9].forEach(fret => markers.appendChild(createCircle(fret*30+15, 150, 2)));
-            markers.appendChild(createCircle(12*30+15, 147, 2));
-            markers.appendChild(createCircle(12*30+15, 153, 2));
+            [3, 5, 7, 9].forEach(fret => markers.appendChild(createCircle(fret * FRET_WIDTH + NECK_START, 150, 2)));
+            markers.appendChild(createCircle(12 * FRET_WIDTH + NECK_START, 147, 2));
+            markers.appendChild(createCircle(12 * FRET_WIDTH + NECK_START, 153, 2));
             svg.appendChild(markers);
 
             scaleNotesList.innerHTML = `
