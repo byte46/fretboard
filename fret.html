@@ -11,10 +11,7 @@
         }
 
         #fretboard {
-            width: 100%;
-            height: auto;
-            max-width: 800px;
-            margin: 0 auto;
+            display: block;
         }
         .controls {
             padding: 10px;
@@ -66,15 +63,64 @@
             background: #f5f5f5;
             border-radius: 4px;
             width: fit-content;
+            margin: 0 20px 20px 20px;
         }
 
         .copyright {
             color: #E0E0E0;
         }
+
+        .container {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .fretboard-container {
+            display: flex;
+            align-items: flex-start;
+            margin-right: 30px;
+        }
+
+        #piano {
+            display: block;
+        }
+
+        .piano-key-white {
+            fill: #FFFFFF;
+            stroke: #000000;
+            stroke-width: 1;
+            cursor: pointer;
+        }
+
+        .piano-key-black {
+            fill: #000000;
+            stroke: #333333;
+            stroke-width: 1;
+            cursor: pointer;
+        }
+
+        .piano-key-tonic {
+            fill: #32CD32 !important;
+        }
+
+        .piano-key-scale {
+            fill: #1E7070 !important;
+        }
+
+        .piano-key-other {
+            fill: #C0C0C0 !important;
+        }
     </style>
 </head>
 <body>
-    <svg id="fretboard" xmlns="http://www.w3.org/2000/svg" width="600" height="220" viewBox="0 0 400 160"></svg>
+    <div class="container">
+        <div class="fretboard-container">
+            <svg id="fretboard" xmlns="http://www.w3.org/2000/svg" width="600" height="220" viewBox="0 0 400 160"></svg>
+        </div>
+        <svg id="piano" xmlns="http://www.w3.org/2000/svg" width="600" height="220"></svg>
+    </div>
     <div id="scaleNotesList"></div>
     <div class="controls">
         <div class="control-group">
@@ -106,11 +152,23 @@
             const NECK_START = 15;
             const NUM_FRETS = 12;
             const NUM_STRINGS = 6;
+            const PIANO_GAP = 30; // Отступ от грифа до фортепиано
+
+            // Параметры фортепиано - размеры как у грифа (width="600", height="220", viewBox="0 0 400 160")
+            const PIANO_TOTAL_WIDTH = 600;
+            const PIANO_SCALE = 220 / 160; // Масштаб по высоте относительно viewBox
+            const PIANO_KEY_WIDTH = (PIANO_TOTAL_WIDTH - 20) / 14; // 14 белых клавиш
+            const PIANO_KEY_HEIGHT = (FRETBOARD_HEIGHT - 20) * PIANO_SCALE; // Высота как у грифа
+            const PIANO_BLACK_KEY_WIDTH = PIANO_KEY_WIDTH * 0.6;
+            const PIANO_BLACK_KEY_HEIGHT = PIANO_KEY_HEIGHT * 0.6;
+            const PIANO_START_X = 10;
+            const PIANO_START_Y = 10 * PIANO_SCALE;
 
             const noteOrder = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
             const tonicOptions = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
             const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
             const svg = document.getElementById('fretboard');
+            const pianoSvg = document.getElementById('piano');
 
 
             const strings = [
@@ -221,7 +279,10 @@
             function createScaleLookup(scaleNotes) {
                 const lookup = {};
                 scaleNotes.forEach((note, index) => {
-                    lookup[note] = index + 1;
+                    // Если нота уже есть (дубликат тоники в конце), пропускаем
+                    if (!(note in lookup)) {
+                        lookup[note] = index + 1;
+                    }
                 });
                 return lookup;
             }
@@ -287,7 +348,152 @@
                     <strong>Ноты последовательности:</strong>
                 ${scaleNotes.join(', ')}
                 `;
+
+                // Обновляем фортепиано
+                updatePiano();
             }
+
+            // Конфигурация клавиш фортепиано (2 октавы, начиная с C)
+            // true = белая клавиша, false = чёрная клавиша
+            const pianoKeysConfig = [
+                { note: 'C', isWhite: true },
+                { note: 'C#', isWhite: false },
+                { note: 'D', isWhite: true },
+                { note: 'D#', isWhite: false },
+                { note: 'E', isWhite: true },
+                { note: 'F', isWhite: true },
+                { note: 'F#', isWhite: false },
+                { note: 'G', isWhite: true },
+                { note: 'G#', isWhite: false },
+                { note: 'A', isWhite: true },
+                { note: 'A#', isWhite: false },
+                { note: 'B', isWhite: true },
+                // Вторая октава
+                { note: 'C', isWhite: true },
+                { note: 'C#', isWhite: false },
+                { note: 'D', isWhite: true },
+                { note: 'D#', isWhite: false },
+                { note: 'E', isWhite: true },
+                { note: 'F', isWhite: true },
+                { note: 'F#', isWhite: false },
+                { note: 'G', isWhite: true },
+                { note: 'G#', isWhite: false },
+                { note: 'A', isWhite: true },
+                { note: 'A#', isWhite: false },
+                { note: 'B', isWhite: true }
+            ];
+
+            function drawPiano() {
+                const scaleNotes = getScaleNotes(currentTonic, scaleType);
+                const scaleLookup = createScaleLookup(scaleNotes);
+
+                pianoSvg.innerHTML = '';
+
+                let whiteKeyIndex = 0;
+
+                // Сначала рисуем белые клавиши
+                pianoKeysConfig.forEach((key, index) => {
+                    if (key.isWhite) {
+                        const x = PIANO_START_X + whiteKeyIndex * PIANO_KEY_WIDTH;
+                        const y = PIANO_START_Y;
+                        const note = key.note;
+                        const isTonic = note === currentTonic;
+                        const isScaleNote = !!scaleLookup[note];
+                        const degree = scaleLookup[note];
+
+                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                        rect.setAttribute('x', x);
+                        rect.setAttribute('y', y);
+                        rect.setAttribute('width', PIANO_KEY_WIDTH);
+                        rect.setAttribute('height', PIANO_KEY_HEIGHT);
+                        rect.classList.add('piano-key-white');
+                        if (isTonic) rect.classList.add('piano-key-tonic');
+                        else if (isScaleNote) rect.classList.add('piano-key-scale');
+                        else rect.classList.add('piano-key-other');
+
+                        rect.setAttribute('data-note', note);
+                        rect.addEventListener('click', () => {
+                            currentTonic = note;
+                            saveState();
+                            drawFretboard();
+                            drawPiano();
+                        });
+
+                        pianoSvg.appendChild(rect);
+
+                        // Добавляем номер ступени на белую клавишу
+                        if (degree) {
+                            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            text.setAttribute('x', x + PIANO_KEY_WIDTH / 2);
+                            text.setAttribute('y', y + PIANO_KEY_HEIGHT - 15);
+                            text.setAttribute('text-anchor', 'middle');
+                            text.setAttribute('fill', 'white');
+                            text.setAttribute('font-family', 'Arial');
+                            text.setAttribute('font-size', '14');
+                            text.setAttribute('pointer-events', 'none');
+                            text.textContent = romanNumerals[degree] || '';
+                            pianoSvg.appendChild(text);
+                        }
+
+                        whiteKeyIndex++;
+                    }
+                });
+
+                // Затем рисуем чёрные клавиши поверх белых
+                whiteKeyIndex = 0;
+                pianoKeysConfig.forEach((key, index) => {
+                    if (key.isWhite) {
+                        whiteKeyIndex++;
+                    } else {
+                        // Чёрная клавиша находится между текущей и следующей белой
+                        const x = PIANO_START_X + whiteKeyIndex * PIANO_KEY_WIDTH - PIANO_BLACK_KEY_WIDTH / 2;
+                        const y = PIANO_START_Y;
+                        const note = key.note;
+                        const isTonic = note === currentTonic;
+                        const isScaleNote = !!scaleLookup[note];
+                        const degree = scaleLookup[note];
+
+                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                        rect.setAttribute('x', x);
+                        rect.setAttribute('y', y);
+                        rect.setAttribute('width', PIANO_BLACK_KEY_WIDTH);
+                        rect.setAttribute('height', PIANO_BLACK_KEY_HEIGHT);
+                        rect.classList.add('piano-key-black');
+                        if (isTonic) rect.classList.add('piano-key-tonic');
+                        else if (isScaleNote) rect.classList.add('piano-key-scale');
+
+                        rect.setAttribute('data-note', note);
+                        rect.addEventListener('click', () => {
+                            currentTonic = note;
+                            saveState();
+                            drawFretboard();
+                            drawPiano();
+                        });
+
+                        pianoSvg.appendChild(rect);
+
+                        // Добавляем номер ступени на чёрную клавишу
+                        if (degree) {
+                            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            text.setAttribute('x', x + PIANO_BLACK_KEY_WIDTH / 2);
+                            text.setAttribute('y', y + PIANO_BLACK_KEY_HEIGHT - 10);
+                            text.setAttribute('text-anchor', 'middle');
+                            text.setAttribute('fill', 'white');
+                            text.setAttribute('font-family', 'Arial');
+                            text.setAttribute('font-size', '12');
+                            text.setAttribute('pointer-events', 'none');
+                            text.textContent = romanNumerals[degree] || '';
+                            pianoSvg.appendChild(text);
+                        }
+                    }
+                });
+            }
+
+            // Обновление фортепиано при изменении состояния
+            function updatePiano() {
+                drawPiano();
+            }
+
             // Вспомогательные функции
             function createRect(x, y, w, h, cls) {
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -325,6 +531,7 @@
             }
             initUI();
             drawFretboard();
+            drawPiano();
         })();
     </script>
     <div class="copyright">&copy; Serge AKA Byte (https://byteware.ru, https://t.me/byteware), 2025</div>
