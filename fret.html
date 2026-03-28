@@ -99,209 +99,211 @@
     </div>
 
     <script>
-        const FRET_WIDTH = 30;
-        const FRETBOARD_HEIGHT = 140;
-        const STRING_SPACING = 20;
-        const NECK_START = 15;
-        const NUM_FRETS = 12;
-        const NUM_STRINGS = 6;
+        (function() {
+            const FRET_WIDTH = 30;
+            const FRETBOARD_HEIGHT = 140;
+            const STRING_SPACING = 20;
+            const NECK_START = 15;
+            const NUM_FRETS = 12;
+            const NUM_STRINGS = 6;
 
-        const noteOrder = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
-        const tonicOptions = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-        const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
-        const svg = document.getElementById('fretboard');
-
-
-        const strings = [
-            { number: 1, openNote: 'E', openIndex: 7 },
-            { number: 2, openNote: 'A', openIndex: 0 },
-            { number: 3, openNote: 'D', openIndex: 5 },
-            { number: 4, openNote: 'G', openIndex: 10 },
-            { number: 5, openNote: 'B', openIndex: 2 },
-            { number: 6, openNote: 'E', openIndex: 7 }
-        ];
-
-        const notes = [];
-        strings.forEach(string => {
-            for (let fret = 0; fret <= NUM_FRETS; fret++) {
-                const noteIndex = (string.openIndex + fret) % 12;
-                notes.push({
-                    note: noteOrder[noteIndex],
-                    x: fret * FRET_WIDTH + NECK_START,
-                    y: FRETBOARD_HEIGHT - (string.number * STRING_SPACING),
-                    fret: fret,
-                    string: string.number
-                });
-            }
-        });
-
-        let currentTonic = 'C';
-        let scaleType = 'major';
-
-        const scaleFormulas = { // Первый элемент — 2 ступень
-            major:      [2, 2, 1, 2, 2, 2, 1],      // Ионийский
-            minor:      [2, 1, 2, 2, 1, 2, 2],      // Эолийский
-            harm_minor: [2, 1, 2, 2, 1, 3, 1],
-            penta_maj:  [2, 2, 3, 2, 3],
-            penta_min:  [3, 2, 2, 3, 2],
-            dorian:     [2, 1, 2, 2, 2, 1, 2],      // Дорийский
-            phrygian:   [1, 2, 2, 2, 1, 2, 2],      // Фригийский
-            lydian:     [2, 2, 2, 1, 2, 2, 1],      // Лидийский
-            mixolydian: [2, 2, 1, 2, 2, 1, 2],      // Миксолидийский
-            locrian:    [1, 2, 2, 1, 2, 2, 2]       // Локрийский
-        };
+            const noteOrder = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
+            const tonicOptions = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+            const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+            const svg = document.getElementById('fretboard');
 
 
-        function initUI() {
-            tonicOptions.forEach(note => {
-                const option = new Option(note, note);
-                tonicSelect.add(option);
-            });
+            const strings = [
+                { number: 1, openNote: 'E', openIndex: 7 },
+                { number: 2, openNote: 'A', openIndex: 0 },
+                { number: 3, openNote: 'D', openIndex: 5 },
+                { number: 4, openNote: 'G', openIndex: 10 },
+                { number: 5, openNote: 'B', openIndex: 2 },
+                { number: 6, openNote: 'E', openIndex: 7 }
+            ];
 
-            // Обработчики событий
-            tonicSelect.addEventListener('change', () => {
-                currentTonic = tonicSelect.value;
-                drawFretboard();
-            });
-
-            document.getElementById('scaleTypeSelect').addEventListener('change', e => {
-                scaleType = e.target.value;
-                drawFretboard();
-            });
-
-            svg.addEventListener('click', e => {
-                if (e.target.classList.contains('note-circle')) {
-                    const note = notes.find(n =>
-                        n.x === +e.target.getAttribute('cx') &&
-                        n.y === +e.target.getAttribute('cy')
-                    );
-                    if (note) {
-                        currentTonic = note.note;
-                        drawFretboard();
-                    }
+            const notes = [];
+            strings.forEach(string => {
+                for (let fret = 0; fret <= NUM_FRETS; fret++) {
+                    const noteIndex = (string.openIndex + fret) % 12;
+                    notes.push({
+                        note: noteOrder[noteIndex],
+                        x: fret * FRET_WIDTH + NECK_START,
+                        y: FRETBOARD_HEIGHT - (string.number * STRING_SPACING),
+                        fret: fret,
+                        string: string.number
+                    });
                 }
             });
-        }
 
-        function getScaleNotes(tonic, type) {
-            const startIndex = noteOrder.indexOf(tonic);
-            const formula = scaleFormulas[type];
-            const scale = [tonic];
-            let current = startIndex;
-            for (const step of formula) {
-                current = (current + step) % 12;
-                scale.push(noteOrder[current]);
+            let currentTonic = 'C';
+            let scaleType = 'major';
+
+            const scaleFormulas = { // Первый элемент — 2 ступень
+                major:      [2, 2, 1, 2, 2, 2, 1],      // Ионийский
+                minor:      [2, 1, 2, 2, 1, 2, 2],      // Эолийский
+                harm_minor: [2, 1, 2, 2, 1, 3, 1],
+                penta_maj:  [2, 2, 3, 2, 3],
+                penta_min:  [3, 2, 2, 3, 2],
+                dorian:     [2, 1, 2, 2, 2, 1, 2],      // Дорийский
+                phrygian:   [1, 2, 2, 2, 1, 2, 2],      // Фригийский
+                lydian:     [2, 2, 2, 1, 2, 2, 1],      // Лидийский
+                mixolydian: [2, 2, 1, 2, 2, 1, 2],      // Миксолидийский
+                locrian:    [1, 2, 2, 1, 2, 2, 2]       // Локрийский
+            };
+
+
+            function initUI() {
+                tonicOptions.forEach(note => {
+                    const option = new Option(note, note);
+                    tonicSelect.add(option);
+                });
+
+                // Обработчики событий
+                tonicSelect.addEventListener('change', () => {
+                    currentTonic = tonicSelect.value;
+                    drawFretboard();
+                });
+
+                document.getElementById('scaleTypeSelect').addEventListener('change', e => {
+                    scaleType = e.target.value;
+                    drawFretboard();
+                });
+
+                svg.addEventListener('click', e => {
+                    if (e.target.classList.contains('note-circle')) {
+                        const note = notes.find(n =>
+                            n.x === +e.target.getAttribute('cx') &&
+                            n.y === +e.target.getAttribute('cy')
+                        );
+                        if (note) {
+                            currentTonic = note.note;
+                            drawFretboard();
+                        }
+                    }
+                });
             }
-            return scale;
-        }
 
-        function createScaleLookup(scaleNotes) {
-            const lookup = {};
-            scaleNotes.forEach((note, index) => {
-                lookup[note] = index + 1;
-            });
-            return lookup;
-        }
-
-        function drawFretboard() {
-            tonicSelect.value = currentTonic;
-            const svg = document.getElementById('fretboard');
-            svg.innerHTML = '';
-
-            svg.appendChild(createRect(0, 0, NECK_START, FRETBOARD_HEIGHT, 'open-fret'));
-            svg.appendChild(createRect(NECK_START, 0, NUM_FRETS * FRET_WIDTH, FRETBOARD_HEIGHT, 'fret-white'));
-
-            for (let i = 0; i <= NUM_FRETS; i++) {
-                svg.appendChild(createLine(i * FRET_WIDTH, 0, i * FRET_WIDTH, FRETBOARD_HEIGHT, 'fret-line'));
-            }
-            // Горизонтальные линии струн
-            for (let i = 1; i <= NUM_STRINGS; i++) {
-                const y = FRETBOARD_HEIGHT - (i * STRING_SPACING);
-                svg.appendChild(createLine(0, y, 390, y, 'string-line'));
+            function getScaleNotes(tonic, type) {
+                const startIndex = noteOrder.indexOf(tonic);
+                const formula = scaleFormulas[type];
+                const scale = [tonic];
+                let current = startIndex;
+                for (const step of formula) {
+                    current = (current + step) % 12;
+                    scale.push(noteOrder[current]);
+                }
+                return scale;
             }
 
-            // Добавление обозначений струн слева
-            strings.forEach(string => {
-                const text = createText(-5, FRETBOARD_HEIGHT - (string.number * STRING_SPACING) + 4, string.openNote);
-                text.classList.add('string_name');
-                svg.appendChild(text);
-            });
+            function createScaleLookup(scaleNotes) {
+                const lookup = {};
+                scaleNotes.forEach((note, index) => {
+                    lookup[note] = index + 1;
+                });
+                return lookup;
+            }
 
-            // Ноты
-            const scaleNotes = getScaleNotes(currentTonic, scaleType);
-            const scaleLookup = createScaleLookup(scaleNotes);
+            function drawFretboard() {
+                tonicSelect.value = currentTonic;
+                const svg = document.getElementById('fretboard');
+                svg.innerHTML = '';
 
-            notes.forEach(n => {
-                const degree = scaleLookup[n.note];
-                const isTonic = n.note === currentTonic;
-                const isScaleNote = !!degree;
+                svg.appendChild(createRect(0, 0, NECK_START, FRETBOARD_HEIGHT, 'open-fret'));
+                svg.appendChild(createRect(NECK_START, 0, NUM_FRETS * FRET_WIDTH, FRETBOARD_HEIGHT, 'fret-white'));
 
-                const circle = createCircle(n.x, n.y, 9, [
-                    'note-circle',
-                    isTonic ? 'note-tonic' :
-                    isScaleNote ? 'note-scale' : 'note-other'
-                ]);
-                svg.appendChild(circle);
+                for (let i = 0; i <= NUM_FRETS; i++) {
+                    svg.appendChild(createLine(i * FRET_WIDTH, 0, i * FRET_WIDTH, FRETBOARD_HEIGHT, 'fret-line'));
+                }
+                // Горизонтальные линии струн
+                for (let i = 1; i <= NUM_STRINGS; i++) {
+                    const y = FRETBOARD_HEIGHT - (i * STRING_SPACING);
+                    svg.appendChild(createLine(0, y, 390, y, 'string-line'));
+                }
 
-                const text = createText(n.x, n.y + 4, romanNumerals[degree] || '');
-                text.setAttribute('fill', 'white');
-                text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('font-family', 'Arial');
-                text.setAttribute('font-size', '10');
-                text.setAttribute('pointer-events', 'none');
-                svg.appendChild(text);
-            });
+                // Добавление обозначений струн слева
+                strings.forEach(string => {
+                    const text = createText(-5, FRETBOARD_HEIGHT - (string.number * STRING_SPACING) + 4, string.openNote);
+                    text.classList.add('string_name');
+                    svg.appendChild(text);
+                });
 
-            // Маркеры ладов
-            const markers = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            markers.setAttribute('class', 'fret-markers');
-            [3, 5, 7, 9].forEach(fret => markers.appendChild(createCircle(fret * FRET_WIDTH + NECK_START, 150, 2)));
-            markers.appendChild(createCircle(12 * FRET_WIDTH + NECK_START, 147, 2));
-            markers.appendChild(createCircle(12 * FRET_WIDTH + NECK_START, 153, 2));
-            svg.appendChild(markers);
+                // Ноты
+                const scaleNotes = getScaleNotes(currentTonic, scaleType);
+                const scaleLookup = createScaleLookup(scaleNotes);
 
-            scaleNotesList.innerHTML = `
-                <strong>Ноты последовательности:</strong>
-            ${scaleNotes.join(', ')}
-            `;
-        }
-        // Вспомогательные функции
-        function createRect(x, y, w, h, cls) {
-            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            rect.setAttribute('x', x);
-            rect.setAttribute('y', y);
-            rect.setAttribute('width', w);
-            rect.setAttribute('height', h);
-            if (cls) rect.classList.add(cls);
-            return rect;
-        }
+                notes.forEach(n => {
+                    const degree = scaleLookup[n.note];
+                    const isTonic = n.note === currentTonic;
+                    const isScaleNote = !!degree;
 
-        function createLine(x1, y1, x2, y2, cls) {
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            line.setAttribute('d', `M${x1} ${y1}L${x2} ${y2}`);
-            line.classList.add(cls);
-            return line;
-        }
+                    const circle = createCircle(n.x, n.y, 9, [
+                        'note-circle',
+                        isTonic ? 'note-tonic' :
+                        isScaleNote ? 'note-scale' : 'note-other'
+                    ]);
+                    svg.appendChild(circle);
 
-        function createCircle(cx, cy, r, classes = []) {
-            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', cx);
-            circle.setAttribute('cy', cy);
-            circle.setAttribute('r', r);
-            if (Array.isArray(classes)) classes.forEach(c => circle.classList.add(c));
-            return circle;
-        }
+                    const text = createText(n.x, n.y + 4, romanNumerals[degree] || '');
+                    text.setAttribute('fill', 'white');
+                    text.setAttribute('text-anchor', 'middle');
+                    text.setAttribute('font-family', 'Arial');
+                    text.setAttribute('font-size', '10');
+                    text.setAttribute('pointer-events', 'none');
+                    svg.appendChild(text);
+                });
 
-        function createText(x, y, text) {
-            const elem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            elem.setAttribute('x', x);
-            elem.setAttribute('y', y);
-            elem.classList.add('svg-text');
-            elem.textContent = text;
-            return elem;
-        }
-        initUI();
-        drawFretboard();
+                // Маркеры ладов
+                const markers = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                markers.setAttribute('class', 'fret-markers');
+                [3, 5, 7, 9].forEach(fret => markers.appendChild(createCircle(fret * FRET_WIDTH + NECK_START, 150, 2)));
+                markers.appendChild(createCircle(12 * FRET_WIDTH + NECK_START, 147, 2));
+                markers.appendChild(createCircle(12 * FRET_WIDTH + NECK_START, 153, 2));
+                svg.appendChild(markers);
+
+                scaleNotesList.innerHTML = `
+                    <strong>Ноты последовательности:</strong>
+                ${scaleNotes.join(', ')}
+                `;
+            }
+            // Вспомогательные функции
+            function createRect(x, y, w, h, cls) {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', x);
+                rect.setAttribute('y', y);
+                rect.setAttribute('width', w);
+                rect.setAttribute('height', h);
+                if (cls) rect.classList.add(cls);
+                return rect;
+            }
+
+            function createLine(x1, y1, x2, y2, cls) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                line.setAttribute('d', `M${x1} ${y1}L${x2} ${y2}`);
+                line.classList.add(cls);
+                return line;
+            }
+
+            function createCircle(cx, cy, r, classes = []) {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', cx);
+                circle.setAttribute('cy', cy);
+                circle.setAttribute('r', r);
+                if (Array.isArray(classes)) classes.forEach(c => circle.classList.add(c));
+                return circle;
+            }
+
+            function createText(x, y, text) {
+                const elem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                elem.setAttribute('x', x);
+                elem.setAttribute('y', y);
+                elem.classList.add('svg-text');
+                elem.textContent = text;
+                return elem;
+            }
+            initUI();
+            drawFretboard();
+        })();
     </script>
     <div class="copyright">&copy; Serge AKA Byte (https://byteware.ru, https://t.me/byteware), 2025</div>
     <div class="copyright">Лицензия: Creative Commons Attribution NonCommercial (CC-BY-NC)</div>
