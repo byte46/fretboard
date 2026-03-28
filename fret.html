@@ -123,12 +123,12 @@
 
         const notes = [];
         strings.forEach(string => {
-            for (let fret = 0; fret <= 12; fret++) {
+            for (let fret = 0; fret <= NUM_FRETS; fret++) {
                 const noteIndex = (string.openIndex + fret) % 12;
                 notes.push({
                     note: noteOrder[noteIndex],
-                    x: fret * 30 + 15,
-                    y: 140 - (string.number * 20),
+                    x: fret * FRET_WIDTH + NECK_START,
+                    y: FRETBOARD_HEIGHT - (string.number * STRING_SPACING),
                     fret: fret,
                     string: string.number
                 });
