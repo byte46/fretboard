@@ -185,6 +185,7 @@
             const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
             const svg = document.getElementById('fretboard');
             const pianoSvg = document.getElementById('piano');
+            const tonicSelect = document.getElementById('tonicSelect');
 
 
             const strings = [
@@ -213,11 +214,17 @@
             let currentTonic = 'C';
             let scaleType = 'major';
 
+            /**
+             * Сохраняет текущее состояние (тоника и тип гаммы) в localStorage
+             */
             function saveState() {
                 localStorage.setItem('guitarFretTonic', currentTonic);
                 localStorage.setItem('guitarFretScaleType', scaleType);
             }
 
+            /**
+             * Загружает сохранённое состояние из localStorage
+             */
             function loadState() {
                 const savedTonic = localStorage.getItem('guitarFretTonic');
                 const savedScaleType = localStorage.getItem('guitarFretScaleType');
@@ -280,6 +287,12 @@
                 });
             }
 
+            /**
+             * Возвращает массив нот гаммы по тонике и типу
+             * @param {string} tonic - Тоника (например, 'C', 'D#')
+             * @param {string} type - Тип гаммы (например, 'major', 'minor')
+             * @returns {string[]} Массив нот гаммы
+             */
             function getScaleNotes(tonic, type) {
                 const startIndex = noteOrder.indexOf(tonic);
                 const formula = scaleFormulas[type];
@@ -292,6 +305,11 @@
                 return scale;
             }
 
+            /**
+             * Создаёт lookup-таблицу {нота: номер_ступени} для O(1) поиска
+             * @param {string[]} scaleNotes - Массив нот гаммы
+             * @returns {Object} Объект вида {нота: номер_ступени}
+             */
             function createScaleLookup(scaleNotes) {
                 const lookup = {};
                 scaleNotes.forEach((note, index) => {
@@ -303,10 +321,13 @@
                 return lookup;
             }
 
+            /**
+             * Перерисовывает гриф гитары с текущими настройками
+             */
             function drawFretboard() {
                 tonicSelect.value = currentTonic;
                 const svg = document.getElementById('fretboard');
-                svg.innerHTML = '';
+                svg.textContent = '';
 
                 svg.appendChild(createRect(0, 0, NECK_START, FRETBOARD_HEIGHT, 'open-fret'));
                 svg.appendChild(createRect(NECK_START, 0, NUM_FRETS * FRET_WIDTH, FRETBOARD_HEIGHT, 'fret-white'));
@@ -399,137 +420,107 @@
                 { note: 'B', isWhite: true }
             ];
 
+            /**
+             * Рисует фортепиано с подсветкой нот гаммы
+             */
             function drawPiano() {
                 const scaleNotes = getScaleNotes(currentTonic, scaleType);
                 const scaleLookup = createScaleLookup(scaleNotes);
 
-                pianoSvg.innerHTML = '';
+                pianoSvg.textContent = '';
 
                 let whiteKeyIndex = 0;
 
                 // Сначала рисуем белые клавиши
-                pianoKeysConfig.forEach((key, index) => {
+                pianoKeysConfig.forEach((key) => {
                     if (key.isWhite) {
                         const x = PIANO_START_X + whiteKeyIndex * PIANO_KEY_WIDTH;
                         const y = PIANO_START_Y;
-                        const note = key.note;
 
-                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                        rect.setAttribute('x', x);
-                        rect.setAttribute('y', y);
-                        rect.setAttribute('width', PIANO_KEY_WIDTH);
-                        rect.setAttribute('height', PIANO_KEY_HEIGHT);
-                        rect.classList.add('piano-key-white');
-
-                        rect.setAttribute('data-note', note);
-                        rect.addEventListener('click', () => {
-                            currentTonic = note;
-                            saveState();
-                            drawFretboard();
-                            drawPiano();
-                        });
-
+                        const rect = createPianoKey(x, y, PIANO_KEY_WIDTH, PIANO_KEY_HEIGHT, 'piano-key-white', key.note);
                         pianoSvg.appendChild(rect);
-
                         whiteKeyIndex++;
                     }
                 });
 
                 // Затем рисуем чёрные клавиши поверх белых
                 whiteKeyIndex = 0;
-                pianoKeysConfig.forEach((key, index) => {
+                pianoKeysConfig.forEach((key) => {
                     if (key.isWhite) {
                         whiteKeyIndex++;
                     } else {
-                        // Чёрная клавиша находится между текущей и следующей белой
                         const x = PIANO_START_X + whiteKeyIndex * PIANO_KEY_WIDTH - PIANO_BLACK_KEY_WIDTH / 2;
                         const y = PIANO_START_Y;
-                        const note = key.note;
 
-                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                        rect.setAttribute('x', x);
-                        rect.setAttribute('y', y);
-                        rect.setAttribute('width', PIANO_BLACK_KEY_WIDTH);
-                        rect.setAttribute('height', PIANO_BLACK_KEY_HEIGHT);
-                        rect.classList.add('piano-key-black');
-
-                        rect.setAttribute('data-note', note);
-                        rect.addEventListener('click', () => {
-                            currentTonic = note;
-                            saveState();
-                            drawFretboard();
-                            drawPiano();
-                        });
-
+                        const rect = createPianoKey(x, y, PIANO_BLACK_KEY_WIDTH, PIANO_BLACK_KEY_HEIGHT, 'piano-key-black', key.note);
                         pianoSvg.appendChild(rect);
                     }
                 });
 
                 // Рисуем кружки для нот гаммы (только активные)
                 whiteKeyIndex = 0;
-                pianoKeysConfig.forEach((key, index) => {
-                    if (key.isWhite) {
-                        const note = key.note;
-                        const degree = scaleLookup[note];
-                        if (degree) {
-                            const x = PIANO_START_X + whiteKeyIndex * PIANO_KEY_WIDTH + PIANO_KEY_WIDTH / 2;
-                            const y = PIANO_START_Y + PIANO_KEY_HEIGHT - PIANO_CIRCLE_Y_OFFSET;
-                            const isTonic = note === currentTonic;
+                pianoKeysConfig.forEach((key) => {
+                    const degree = scaleLookup[key.note];
+                    if (degree) {
+                        const isWhite = key.isWhite;
+                        const x = isWhite
+                            ? PIANO_START_X + whiteKeyIndex * PIANO_KEY_WIDTH + PIANO_KEY_WIDTH / 2
+                            : PIANO_START_X + whiteKeyIndex * PIANO_KEY_WIDTH;
+                        const y = isWhite
+                            ? PIANO_START_Y + PIANO_KEY_HEIGHT - PIANO_CIRCLE_Y_OFFSET
+                            : PIANO_START_Y + PIANO_BLACK_KEY_HEIGHT - PIANO_CIRCLE_Y_OFFSET;
+                        const fontSize = isWhite ? 12 : 10;
 
-                            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                            circle.setAttribute('cx', x);
-                            circle.setAttribute('cy', y);
-                            circle.setAttribute('r', PIANO_CIRCLE_RADIUS);
-                            circle.classList.add(isTonic ? 'piano-circle-tonic' : 'piano-circle-scale');
-                            circle.setAttribute('pointer-events', 'none');
-
-                            pianoSvg.appendChild(circle);
-
-                            // Добавляем номер ступени на кружок
-                            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                            text.setAttribute('x', x);
-                            text.setAttribute('y', y + 5);
-                            text.setAttribute('text-anchor', 'middle');
-                            text.setAttribute('fill', 'white');
-                            text.setAttribute('font-family', 'Arial');
-                            text.setAttribute('font-size', '12');
-                            text.setAttribute('pointer-events', 'none');
-                            text.textContent = romanNumerals[degree] || '';
-                            pianoSvg.appendChild(text);
-                        }
-                        whiteKeyIndex++;
-                    } else {
-                        // Чёрные клавиши
-                        const note = key.note;
-                        const degree = scaleLookup[note];
-                        if (degree) {
-                            const x = PIANO_START_X + whiteKeyIndex * PIANO_KEY_WIDTH - PIANO_BLACK_KEY_WIDTH / 2 + PIANO_BLACK_KEY_WIDTH / 2;
-                            const y = PIANO_START_Y + PIANO_BLACK_KEY_HEIGHT - PIANO_CIRCLE_Y_OFFSET;
-                            const isTonic = note === currentTonic;
-
-                            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                            circle.setAttribute('cx', x);
-                            circle.setAttribute('cy', y);
-                            circle.setAttribute('r', PIANO_CIRCLE_RADIUS);
-                            circle.classList.add(isTonic ? 'piano-circle-tonic' : 'piano-circle-scale');
-                            circle.setAttribute('pointer-events', 'none');
-
-                            pianoSvg.appendChild(circle);
-
-                            // Добавляем номер ступени на кружок
-                            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                            text.setAttribute('x', x);
-                            text.setAttribute('y', y + 5);
-                            text.setAttribute('text-anchor', 'middle');
-                            text.setAttribute('fill', 'white');
-                            text.setAttribute('font-family', 'Arial');
-                            text.setAttribute('font-size', '10');
-                            text.setAttribute('pointer-events', 'none');
-                            text.textContent = romanNumerals[degree] || '';
-                            pianoSvg.appendChild(text);
-                        }
+                        drawPianoCircle(x, y, key.note, degree, fontSize);
                     }
+                    if (key.isWhite) whiteKeyIndex++;
                 });
+            }
+
+            /**
+             * Создаёт клавишу фортепиано
+             */
+            function createPianoKey(x, y, width, height, cls, note) {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', x);
+                rect.setAttribute('y', y);
+                rect.setAttribute('width', width);
+                rect.setAttribute('height', height);
+                rect.classList.add(cls);
+                rect.setAttribute('data-note', note);
+                rect.addEventListener('click', () => {
+                    currentTonic = note;
+                    saveState();
+                    drawFretboard();
+                    drawPiano();
+                });
+                return rect;
+            }
+
+            /**
+             * Рисует кружок с номером ступени на клавише фортепиано
+             */
+            function drawPianoCircle(x, y, note, degree, fontSize) {
+                const isTonic = note === currentTonic;
+
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+                circle.setAttribute('r', PIANO_CIRCLE_RADIUS);
+                circle.classList.add(isTonic ? 'piano-circle-tonic' : 'piano-circle-scale');
+                circle.setAttribute('pointer-events', 'none');
+                pianoSvg.appendChild(circle);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y + 5);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-family', 'Arial');
+                text.setAttribute('font-size', fontSize);
+                text.setAttribute('pointer-events', 'none');
+                text.textContent = romanNumerals[degree] || '';
+                pianoSvg.appendChild(text);
             }
 
             // Обновление фортепиано при изменении состояния
@@ -538,6 +529,9 @@
             }
 
             // Вспомогательные функции
+            /**
+             * Создаёт SVG-элемент rect
+             */
             function createRect(x, y, w, h, cls) {
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 rect.setAttribute('x', x);
@@ -548,6 +542,9 @@
                 return rect;
             }
 
+            /**
+             * Создаёт SVG-элемент path (линия)
+             */
             function createLine(x1, y1, x2, y2, cls) {
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 line.setAttribute('d', `M${x1} ${y1}L${x2} ${y2}`);
@@ -555,6 +552,9 @@
                 return line;
             }
 
+            /**
+             * Создаёт SVG-элемент circle
+             */
             function createCircle(cx, cy, r, classes = []) {
                 const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circle.setAttribute('cx', cx);
@@ -564,6 +564,9 @@
                 return circle;
             }
 
+            /**
+             * Создаёт SVG-элемент text
+             */
             function createText(x, y, text) {
                 const elem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 elem.setAttribute('x', x);
